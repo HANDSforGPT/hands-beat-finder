@@ -8,8 +8,9 @@ import dns from 'node:dns/promises';
 import crypto from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {pipeline} from 'node:stream/promises';
+import {fileURLToPath} from 'node:url';
 import {estimateKey} from './music.mjs';
-const ROOT=path.dirname(new URL(import.meta.url).pathname);
+const ROOT=path.dirname(fileURLToPath(import.meta.url));
 export const PORT=Number(process.env.BEAT_FINDER_PORT||58983);
 const DATA=process.env.BEAT_FINDER_DATA||path.join(os.homedir(),'Library','Application Support','HANDS Beat Finder');
 const FILE=path.join(DATA,'catalog.json');
@@ -61,4 +62,4 @@ if(req.method==='POST'&&url.pathname==='/api/analyze'){const bytes=await readBod
 if(req.method==='POST'&&url.pathname==='/api/convert'){const args=JSON.parse((await readBody(req,5000)).toString());if(!args.rights)return error(res,400,'Confirm authorization to download this audio');if(!['mp3','wav'].includes(args.format))return error(res,400,'Choose MP3 or WAV');const audio=await convert(args.url,args.format);res.writeHead(200,{'Content-Type':args.format==='mp3'?'audio/mpeg':'audio/wav','Content-Disposition':'attachment; filename="beat-finder.'+args.format+'"','Content-Length':audio.length,'Cache-Control':'no-store'});return res.end(audio)}
 return error(res,404,'Not found')
 }catch(e){if(!res.headersSent)return error(res,400,String(e?.message||e).slice(0,230));res.end()}});server.listen(PORT,'127.0.0.1',()=>console.log('Beat Finder listening on http://127.0.0.1:'+PORT));return server}
-if(process.argv[1]&&path.resolve(process.argv[1])===path.resolve(new URL(import.meta.url).pathname))startServer();
+if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))startServer();
