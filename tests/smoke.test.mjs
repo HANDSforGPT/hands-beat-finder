@@ -1,0 +1,17 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {estimateKey} from '../music.mjs';
+import {cleanBeat,publicIP,GENRES,KEYS} from '../server.mjs';
+const good={title:'Test',producer:'Original Producer',genre:'Trap',key:'C minor',bpm:128,storeUrl:'https://producer.example.com/buy',previewUrl:'https://cdn.example.com/audio.wav',stemsUrl:''};
+test('catalog has requested genres',()=>{assert.ok(GENRES.includes('Trap'));assert.ok(GENRES.includes('R&B'));assert.ok(GENRES.includes('House'))});
+test('all major and minor musical keys available',()=>assert.equal(KEYS.length,24));
+test('valid beat preserved and assigned ID',()=>{const b=cleanBeat(good);assert.equal(b.producer,good.producer);assert.ok(b.id)});
+test('beat requires purchase link',()=>assert.throws(()=>cleanBeat({...good,storeUrl:''})));
+test('beat requires HTTPS purchase link',()=>assert.throws(()=>cleanBeat({...good,storeUrl:'http://example.com/beat'})));
+test('beat rejects malicious javascript URL',()=>assert.throws(()=>cleanBeat({...good,previewUrl:'javascript:alert(1)'})));
+test('beat requires valid BPM',()=>assert.throws(()=>cleanBeat({...good,bpm:0})));
+test('beat rejects unknown genre',()=>assert.throws(()=>cleanBeat({...good,genre:'false'})));
+test('deny loopback/private/link-local/public reserved IPs',()=>{for(const ip of ['127.0.0.1','192.168.0.1','10.0.0.4','172.16.4.1','169.254.1.3','::1','198.18.0.1'])assert.equal(publicIP(ip),false,ip)});
+test('public IP routing accepts ordinary IPv4',()=>assert.equal(publicIP('8.8.8.8'),true));
+test('silence produces unknown key',()=>{const s=new Int16Array(11025);assert.equal(estimateKey(s).key,'Unknown')});
+test('C major synthetic chord returns a harmonic result',()=>{const rate=11025;const freq=[261.6256,329.6276,391.9954];const samples=Int16Array.from({length:rate*4},(_,i)=>Math.round(freq.reduce((a,h)=>a+Math.sin(2*Math.PI*h*i/rate),0)*3000));const k=estimateKey(samples);assert.equal(k.key,'C major');assert.ok(k.frames>5)});
